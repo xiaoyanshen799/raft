@@ -6,6 +6,8 @@ import (
 	"log"
 	"math/rand"
 	"net"
+	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -51,18 +53,18 @@ func NewRaftNode(id int32, peerAddresses []string) *RaftNode {
 		log:           []LogEntry{},
 		commitIndex:   0,
 		lastApplied:   0,
-		electionTimer: time.NewTimer(time.Duration(rand.Intn(150)+150) * time.Millisecond), // Initialize electionTimer
+		electionTimer: time.NewTimer(time.Duration(rand.Intn(150)+150) * time.Millisecond),
 	}
 
-	// Initialize gRPC clients for each peer
 	go func() {
 		for _, addr := range peerAddresses {
 			if addr != fmt.Sprintf("localhost:%d", 50050+id) { // Skip self-address
 				conn, err := grpc.Dial(addr, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(time.Second*30))
 				if err != nil {
-					log.Fatalf("Failed to connect to peer %s: %v", addr, err)
+					log.Printf("Failed to connect to peer %s: %v", addr, err)
+					continue
 				}
-				fmt.Print("connect : %s", conn.GetState())
+				fmt.Printf("Process %d connected to peer at %s\n", id, addr)
 				rn.peers = append(rn.peers, pb.NewRaftClient(conn))
 			}
 		}
@@ -80,6 +82,7 @@ func (rn *RaftNode) startElection() {
 		time.Sleep(time.Second * 5)
 	}
 
+	// Start election
 	rn.state = Candidate
 	rn.term++
 	rn.voteCount = 1 // Vote for itself
@@ -99,7 +102,7 @@ func (rn *RaftNode) startElection() {
 				if rn.voteCount > int32(len(rn.peers)/2) && rn.state == Candidate {
 					fmt.Printf("Process %d wins the election and becomes the leader\n", rn.id)
 					rn.state = Leader
-					rn.heartbeatTimer = time.NewTicker(1000 * time.Millisecond)
+					rn.heartbeatTimer = time.NewTicker(10 * time.Second)
 					go rn.sendHeartbeats()
 				}
 				rn.mutex.Unlock()
@@ -132,14 +135,16 @@ func (rn *RaftNode) AppendEntries(ctx context.Context, req *pb.AppendEntriesRequ
 	rn.mutex.Lock()
 	defer rn.mutex.Unlock()
 
-	if req.Term < rn.term {
-		return &pb.AppendEntriesResponse{Success: false}, nil
+	// Only reset if the term is valid (leader's term is greater than or equal to follower's term)
+	if req.Term >= rn.term {
+		rn.state = Follower
+		rn.term = req.Term
+		// Reset the election timer to prevent this node from starting a new election
+		rn.electionTimer.Reset(time.Duration(rand.Intn(15)+15) * time.Second)
+		return &pb.AppendEntriesResponse{Success: true}, nil
 	}
 
-	rn.state = Follower
-	rn.term = req.Term
-	rn.electionTimer.Reset(time.Duration(rand.Intn(150)+150) * time.Millisecond) // Reset election timer upon heartbeat
-	return &pb.AppendEntriesResponse{Success: true}, nil
+	return &pb.AppendEntriesResponse{Success: false}, nil
 }
 
 func (rn *RaftNode) RequestVote(ctx context.Context, req *pb.RequestVoteRequest) (*pb.RequestVoteResponse, error) {
@@ -151,44 +156,58 @@ func (rn *RaftNode) RequestVote(ctx context.Context, req *pb.RequestVoteRequest)
 		return &pb.RequestVoteResponse{VoteGranted: false}, nil
 	}
 
-	rn.term = req.Term
-	rn.state = Follower
-	rn.electionTimer.Reset(time.Duration(rand.Intn(150)+150) * time.Millisecond) // Reset election timer
+	// Step down if we see a higher term and reset election timer
+	if req.Term > rn.term {
+		rn.term = req.Term
+		rn.state = Follower
+		rn.electionTimer.Reset(time.Duration(rand.Intn(15)+15) * time.Second)
+	}
+
 	return &pb.RequestVoteResponse{VoteGranted: true}, nil
 }
 
 func main() {
-	nodeID := int32(6) // Set this ID uniquely for each node
-	peerAddresses := []string{
-		"localhost:50051",
-		"localhost:50052",
-		"localhost:50053",
-		"localhost:50054",
-		"localhost:50055",
+	// Read Node ID and peer addresses from environment variables
+	nodeIDStr := os.Getenv("NODE_ID")
+	nodeID, err := strconv.Atoi(nodeIDStr)
+	if err != nil {
+		log.Fatalf("Invalid NODE_ID: %v", err)
 	}
 
-	raftNode := NewRaftNode(nodeID, peerAddresses)
+	// Use service names to form peer addresses
+	peerAddresses := []string{
+		"node1:50051",
+		"node2:50052",
+		"node3:50053",
+		"node4:50054",
+		"node5:50055",
+	}
 
-	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", 50050+nodeID))
+	raftNode := NewRaftNode(int32(nodeID), peerAddresses)
+
+	// Set up the gRPC server
+	port := 50050 + nodeID
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
-		log.Fatalf("Failed to listen on port %d: %v", 50050+nodeID, err)
+		log.Fatalf("Failed to listen on port %d: %v", port, err)
 	}
 
 	grpcServer := grpc.NewServer()
 	pb.RegisterRaftServer(grpcServer, raftNode)
 
+	// Election timer handling
 	go func() {
 		for {
 			select {
 			case <-raftNode.electionTimer.C:
-				if raftNode.state == Follower {
+				if raftNode.state != Leader {
 					raftNode.startElection()
 				}
 			}
 		}
 	}()
 
-	fmt.Printf("Raft node %d is listening on port %d\n", nodeID, 50050+nodeID)
+	fmt.Printf("Raft node %d is listening on port %d\n", nodeID, port)
 	if err := grpcServer.Serve(lis); err != nil {
 		log.Fatalf("Failed to serve gRPC server: %v", err)
 	}
