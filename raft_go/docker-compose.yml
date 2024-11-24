@@ -1,12 +1,10 @@
-version: '3'
-
+version: '3.8'
 services:
   node1:
     build: .
     environment:
       - NODE_ID=1
-      - PORT=50051
-      - PEERS=node2:50052,node3:50053,node4:50054,node5:50055
+      - PEER_ADDRESSES=node2:50052,node3:50053,node4:50054,node5:50055
     ports:
       - "50051:50051"
 
@@ -14,8 +12,7 @@ services:
     build: .
     environment:
       - NODE_ID=2
-      - PORT=50052
-      - PEERS=node1:50051,node3:50053,node4:50054,node5:50055
+      - PEER_ADDRESSES=node1:50051,node3:50053,node4:50054,node5:50055
     ports:
       - "50052:50052"
 
@@ -23,8 +20,7 @@ services:
     build: .
     environment:
       - NODE_ID=3
-      - PORT=50053
-      - PEERS=node1:50051,node2:50052,node4:50054,node5:50055
+      - PEER_ADDRESSES=node1:50051,node2:50052,node4:50054,node5:50055
     ports:
       - "50053:50053"
 
@@ -32,8 +28,7 @@ services:
     build: .
     environment:
       - NODE_ID=4
-      - PORT=50054
-      - PEERS=node1:50051,node2:50052,node3:50053,node5:50055
+      - PEER_ADDRESSES=node1:50051,node2:50052,node3:50053,node5:50055
     ports:
       - "50054:50054"
 
@@ -41,7 +36,6 @@ services:
     build: .
     environment:
       - NODE_ID=5
-      - PORT=50055
-      - PEERS=node1:50051,node2:50052,node3:50053,node4:50054
+      - PEER_ADDRESSES=node1:50051,node2:50052,node3:50053,node4:50054
     ports:
       - "50055:50055"

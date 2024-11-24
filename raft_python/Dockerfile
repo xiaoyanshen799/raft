@@ -1,9 +1,10 @@
-# Dockerfile for Python node
-FROM python:3.8-slim
+FROM python:3.9-slim
 
 WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
 COPY . .
 
-RUN pip install xmlrpc
-
-CMD ["python", "main.py"]
+CMD ["python", "src/main.py"]
