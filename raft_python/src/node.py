@@ -50,6 +50,7 @@ class RaftNode(raft_pb2_grpc.RaftServicer):
         self.current_term = 0
         self.voted_for = None
         self.log = []
+        self.index = 0
         self.commit_index = 0
         self.last_applied = 0
         self.leader_id = None
@@ -148,8 +149,9 @@ class RaftNode(raft_pb2_grpc.RaftServicer):
 
         # 如果是leader，直接处理请求 (2) append <o, t, k+1> to log
         log_entry = LogEntry(term=self.current_term, command=request.operation)
-        print(f"Process {self.id} appends log entry: {log_entry}", flush=True)
         self.log.append(log_entry)
+        self.index = len(self.log)
+        print(f"Process {self.id} appends log entry: {log_entry} index {self.index}", flush=True)
 
         # 复制到其他节点
         success_count = 1  # 包括自己
