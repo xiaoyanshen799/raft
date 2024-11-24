@@ -99,7 +99,7 @@ class RaftNode(raft_pb2_grpc.RaftServicer):
                 else:
                     self.log[self.commit_index] = log_entry
                 self.commit_index += 1
-                print(f"Process {self.id} appends log entry: {log_entry}", flush=True)
+                print(f"Process {self.id} appends log entry: {log_entry} index: {self.commit_index}", flush=True)
 
         if request.leader_commit > self.commit_index:
             self.commit_index = min(request.leader_commit, len(self.log) - 1)
