@@ -145,7 +145,18 @@ func (rn *RaftNode) AppendEntries(ctx context.Context, req *pb.AppendEntriesRequ
 		rn.electionTimer.Reset(time.Duration(rand.Intn(15)+15) * time.Second)
 		// set leader id
 		rn.leaderId = req.LeaderId
-		fmt.Printf("Process %d received AppendEntries from %d\n", rn.id, req.LeaderId)
+		// fmt.Printf("Process %d received AppendEntries from %d\n", rn.id, req.LeaderId)
+		if(req.Entries != nil){
+		    for _, entry := range req.Entries {
+		                rn.log = append(rn.log, LogEntry{
+		                    Term:    entry.Term,
+		                    Command: entry.Command,
+		                    Index:   entry.Index,
+                        })
+                        fmt.Printf("Process %d appended log entry at index %d: %s\n", rn.id, entry.Index, entry.Command)
+            }
+        }
+
 		return &pb.AppendEntriesResponse{Success: true}, nil
 	}
 

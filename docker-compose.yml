@@ -1,0 +1,63 @@
+version: '3'
+
+services:
+  # Python nodes
+  python_node1:
+    build:
+      context: ./raft_python
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ID=1
+      - PORT=50051
+      - PEERS=python_node2:50052,python_node3:50053,go_node1:50054,go_node2:50055
+    ports:
+      - "50051:50051"
+
+
+  python_node2:
+    build:
+      context: ./raft_python
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ID=2
+      - PORT=50052
+      - PEERS=python_node1:50051,python_node3:50053,go_node1:50054,go_node2:50055
+    ports:
+      - "50052:50052"
+
+
+  python_node3:
+    build:
+      context: ./raft_python
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ID=3
+      - PORT=50053
+      - PEERS=python_node1:50051,python_node2:50052,go_node1:50054,go_node2:50055
+    ports:
+      - "50053:50053"
+
+
+  # Go nodes
+  go_node1:
+    build:
+      context: ./raft_go
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ID=4
+      - PORT=50054
+      - PEER_ADDRESSES=python_node1:50051,python_node2:50052,python_node3:50053,go_node2:50055
+    ports:
+      - "50054:50054"
+
+
+  go_node2:
+    build:
+      context: ./raft_go
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ID=5
+      - PORT=50055
+      - PEER_ADDRESSES=python_node1:50051,python_node2:50052,python_node3:50053,go_node1:50054
+    ports:
+      - "50055:50055"
