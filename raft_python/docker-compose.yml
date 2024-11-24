@@ -1,0 +1,15 @@
+version: '3'
+services:
+  go_node1:
+    build:
+      context: .
+      dockerfile: Dockerfile.go
+    ports:
+      - "9001:9001"
+
+  python_node1:
+    build:
+      context: .
+      dockerfile: Dockerfile.py
+    ports:
+      - "9002:9002"
