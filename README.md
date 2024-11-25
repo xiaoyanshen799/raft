@@ -169,13 +169,14 @@ Common issues and solutions:
    - Check PEERS environment variable configuration
    - Verify network connectivity between containers
 
-## Contributing
+### Academic Papers
+1. Ongaro, D., & Ousterhout, J. (2014). "In Search of an Understandable Consensus Algorithm". USENIX Annual Technical Conference.
 
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a new Pull Request
+### Technical Documentation
+- gRPC Official Documentation (https://grpc.io/docs/)
+- Protocol Buffers Documentation (https://protobuf.dev/)
+- Docker Documentation (https://docs.docker.com/)
+
 
 ## License
 
