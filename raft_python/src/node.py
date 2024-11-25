@@ -66,7 +66,7 @@ class RaftNode(raft_pb2_grpc.RaftServicer):
 
     def RequestVote(self, request, context):
         # self.logger.info(f"Received vote request from node {request.candidate_id}")
-        # print(f"Process {self.id} receives RPC RequestVote from Process {request.candidate_id}")
+        print(f"Process {self.id} receives RPC RequestVote from Process {request.candidate_id}", flush=True)
 
         if request.term < self.current_term:
             return raft_pb2.RequestVoteResponse(vote_granted=False)
@@ -93,13 +93,13 @@ class RaftNode(raft_pb2_grpc.RaftServicer):
         # 处理日志条目
         if request.entries:
             for entry in request.entries:
-                log_entry = LogEntry(term=entry.term, command=entry.command)
+                log_entry = LogEntry(term=entry.term, command=entry.command, index=entry.index)
                 if len(self.log) <= self.commit_index:
                     self.log.append(log_entry)
                 else:
                     self.log[self.commit_index] = log_entry
                 self.commit_index += 1
-                print(f"Process {self.id} appends log entry: {log_entry} index: {self.commit_index}", flush=True)
+                print(f"Process {self.id} appends log entry: {log_entry} index: {entry.index}", flush=True)
 
         if request.leader_commit > self.commit_index:
             self.commit_index = min(request.leader_commit, len(self.log) - 1)
@@ -148,10 +148,10 @@ class RaftNode(raft_pb2_grpc.RaftServicer):
                 )
 
         # 如果是leader，直接处理请求 (2) append <o, t, k+1> to log
-        log_entry = LogEntry(term=self.current_term, command=request.operation)
+        log_entry = LogEntry(term=self.current_term, command=request.operation, index=self.index + 1)
+        self.index += 1
         self.log.append(log_entry)
-        self.index = len(self.log)
-        print(f"Process {self.id} appends log entry: {log_entry} index {self.index}", flush=True)
+        print(f"Process {self.id} appends log entry: {log_entry} index {log_entry.index}", flush=True)
 
         # 复制到其他节点
         success_count = 1  # 包括自己
@@ -164,7 +164,8 @@ class RaftNode(raft_pb2_grpc.RaftServicer):
                         leader_id=self.id,
                         entries=[raft_pb2.LogEntry(
                             term=log_entry.term,
-                            command=log_entry.command
+                            command=log_entry.command,
+                            index=log_entry.index
                         )],
                         leader_commit=self.commit_index
                     ))

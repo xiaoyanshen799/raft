@@ -62,7 +62,7 @@ func NewRaftNode(id int32, peerAddresses []string) *RaftNode {
 	go func() {
 		for _, addr := range peerAddresses {
 			if addr != fmt.Sprintf("localhost:%d", 50050+id) { // Skip self-address
-				conn, err := grpc.Dial(addr, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(time.Second*30))
+				conn, err := grpc.Dial(addr, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(time.Second*5))
 				if err != nil {
 					log.Printf("Failed to connect to peer %s: %v", addr, err)
 					continue
@@ -105,7 +105,7 @@ func (rn *RaftNode) startElection() {
 				if rn.voteCount > int32((len(rn.peers)+1)/2) && rn.state == Candidate {
 					fmt.Printf("Process %d wins the election and becomes the leader\n", rn.id)
 					rn.state = Leader
-					rn.heartbeatTimer = time.NewTicker(10 * time.Second)
+					rn.heartbeatTimer = time.NewTicker(100 * time.Millisecond)
 					go rn.sendHeartbeats()
 				}
 				rn.mutex.Unlock()
@@ -142,10 +142,10 @@ func (rn *RaftNode) AppendEntries(ctx context.Context, req *pb.AppendEntriesRequ
 		rn.state = Follower
 		rn.term = req.Term
 		// Reset the election timer to prevent this node from starting a new election
-		rn.electionTimer.Reset(time.Duration(rand.Intn(15)+15) * time.Second)
+		rn.electionTimer.Reset(time.Duration(rand.Intn(150)+150) * time.Millisecond)
 		// set leader id
 		rn.leaderId = req.LeaderId
-		// fmt.Printf("Process %d received AppendEntries from %d\n", rn.id, req.LeaderId)
+		fmt.Printf("Process %d received RPC AppendEntries from %d\n", rn.id, req.LeaderId)
 		if(req.Entries != nil){
 		    for _, entry := range req.Entries {
 		                rn.log = append(rn.log, LogEntry{
@@ -176,7 +176,7 @@ func (rn *RaftNode) RequestVote(ctx context.Context, req *pb.RequestVoteRequest)
 	if req.Term > rn.term {
 		rn.term = req.Term
 		rn.state = Follower
-		rn.electionTimer.Reset(time.Duration(rand.Intn(15)+15) * time.Second)
+		rn.electionTimer.Reset(time.Duration(rand.Intn(150)+150) * time.Millisecond)
 	}
 
 	return &pb.RequestVoteResponse{VoteGranted: true}, nil

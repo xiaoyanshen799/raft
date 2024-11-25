@@ -12,3 +12,4 @@ class NodeState(Enum):
 class LogEntry:
     term: int
     command: str
+    index: int
