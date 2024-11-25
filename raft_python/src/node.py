@@ -151,30 +151,39 @@ class RaftNode(raft_pb2_grpc.RaftServicer):
         log_entry = LogEntry(term=self.current_term, command=request.operation, index=self.index + 1)
         self.index += 1
         self.log.append(log_entry)
-        print(f"Process {self.id} appends log entry: {log_entry} index {log_entry.index}", flush=True)
+        # print(f"Process {self.id} appends log entry: {log_entry} index {log_entry.index}", flush=True)
 
         # 复制到其他节点
         success_count = 1  # 包括自己
         for peer in self.peer_addresses:
+            # print(f"Process {self.id} sends RPC AppendEntries to {peer}", flush=True)
             try:
                 with grpc.insecure_channel(peer) as channel:
                     stub = raft_pb2_grpc.RaftStub(channel)
-                    response = stub.AppendEntries(raft_pb2.AppendEntriesRequest(
-                        term=self.current_term,
-                        leader_id=self.id,
-                        entries=[raft_pb2.LogEntry(
-                            term=log_entry.term,
-                            command=log_entry.command,
-                            index=log_entry.index
-                        )],
-                        leader_commit=self.commit_index
-                    ))
+                    # 设置一个超时时间 5s
+                    response = stub.AppendEntries(
+                        raft_pb2.AppendEntriesRequest(
+                            term=self.current_term,
+                            leader_id=self.id,
+                            entries=[
+                                raft_pb2.LogEntry(
+                                    term=log_entry.term,
+                                    command=log_entry.command,
+                                    index=log_entry.index
+                                )
+                            ],
+                            leader_commit=self.commit_index
+                        ),
+                        timeout=5.0
+                    )
                     if response.success:
+                        # print(f"Process {self.id} replicates log entry to {peer}", flush=True)
                         success_count += 1
             except grpc.RpcError:
                 continue
 
         # 如果多数节点确认，提交该条目
+        print(f"Process {self.id} success count: {success_count}")
         if success_count > len(self.peer_addresses) / 2:
             self.commit_index = len(self.log) - 1
             return raft_pb2.ClientResponseMessage(

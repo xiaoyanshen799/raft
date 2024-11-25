@@ -28,15 +28,15 @@ func sendClientRequest(addr string, operation string) {
 }
 
 func main() {
-    // Send a client add request to the server - case 5
-	sendClientRequest("localhost:50051", "add")
+//     // Send a client add request to the server - case 5
+// 	sendClientRequest("localhost:50051", "add")
+//
+// 	// Send a client subtract request to the server - case 6
+// 	sendClientRequest("localhost:50051", "subtract")
+//
+// 	// Send a client subtract request to the server - case 6
+// 	sendClientRequest("localhost:50053", "subtract")
 
 	// Send a client subtract request to the server - case 6
-	sendClientRequest("localhost:50051", "subtract")
-
-	// Send a client subtract request to the server - case 6
-	sendClientRequest("localhost:50053", "subtract")
-
-	// Send a client subtract request to the server - case 6
-	sendClientRequest("localhost:50053", "subtract")
+	sendClientRequest("localhost:50055", "subtract")
 }
