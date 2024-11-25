@@ -107,7 +107,7 @@ class RaftNode(raft_pb2_grpc.RaftServicer):
         return raft_pb2.AppendEntriesResponse(success=True)
 
     def ClientRequest(self, request, context):
-        print(f"Process {self.id} receives client request: {request.operation}")
+        print(f"Process {self.id} receives client request: {request.operation}", flush=True)
 
         # 如果当前节点不是leader，需要转发请求到leader
         if self.state != NodeState.LEADER:
