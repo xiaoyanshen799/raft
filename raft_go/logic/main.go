@@ -134,9 +134,10 @@ func (rn *RaftNode) sendHeartbeats() {
 }
 
 func (rn *RaftNode) AppendEntries(ctx context.Context, req *pb.AppendEntriesRequest) (*pb.AppendEntriesResponse, error) {
+	fmt.Printf("req.term %d, rn.term %d Process %d received RPC AppendEntries from %d\n", req.Term, rn.term, rn.id, req.LeaderId)
 	rn.mutex.Lock()
 	defer rn.mutex.Unlock()
-
+    //fmt.Printf("req.term %d, rn.term %d Process %d received RPC AppendEntries from %d\n", req.Term, rn.term, rn.id, req.LeaderId)
 	// Only reset if the term is valid (leader's term is greater than or equal to follower's term)
 	if req.Term >= rn.term {
 		rn.state = Follower
