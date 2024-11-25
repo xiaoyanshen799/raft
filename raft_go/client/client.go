@@ -38,5 +38,5 @@ func main() {
 // 	sendClientRequest("localhost:50053", "subtract")
 
 	// Send a client subtract request to the server - case 6
-	sendClientRequest("localhost:50055", "subtract")
+	sendClientRequest("localhost:50052", "subtract")
 }
